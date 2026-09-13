@@ -1063,6 +1063,13 @@ function App() {
       return defaultSettings;
     }
   });
+  const fetchSharedSettings = () => {
+    supabase.from('site_settings').select('*').eq('id', 1).maybeSingle().then(({ data, error }) => {
+      if (!error && data && data.data) {
+        setSettings(prev => ({ ...prev, ...data.data }));
+      }
+    }).catch(() => {});
+  };
   const [tractors, setTractors] = React.useState([]);
   const [tractorsLoading, setTractorsLoading] = React.useState(true);
   const [reservations, setReservations] = React.useState([]);
@@ -1095,7 +1102,7 @@ function App() {
     });
   };
 
-  React.useEffect(() => { fetchTractors(); }, []);
+  React.useEffect(() => { fetchTractors(); fetchSharedSettings(); }, []);
 
   React.useEffect(() => {
     supabase.auth.getSession().then(({ data }) => { setSession(data.session); setAuthLoading(false); if (data.session) checkMfaStatus(); });
@@ -1592,9 +1599,18 @@ function App() {
   const updateSiteSettings = (e) => {
     e.preventDefault();
     const data = new FormData(e.target);
-    setSettings({ ...settings, siteName: data.get('siteName'), adminEmail: data.get('adminEmail'), primaryColor: data.get('primaryColor'), secondaryColor: data.get('secondaryColor'), bgColor: data.get('bgColor'), iaAgentEnabled: data.get('iaAgentEnabled') === 'on', iaAgentSystemMessage: data.get('iaAgentSystemMessage'), openAiApiKey: data.get('openAiApiKey') });
-    setMessage("✅ Configuration mise à jour !");
-    setTimeout(() => setMessage(''), 3000);
+    const newSettings = { ...settings, siteName: data.get('siteName'), adminEmail: data.get('adminEmail'), primaryColor: data.get('primaryColor'), secondaryColor: data.get('secondaryColor'), bgColor: data.get('bgColor'), iaAgentEnabled: data.get('iaAgentEnabled') === 'on', iaAgentSystemMessage: data.get('iaAgentSystemMessage'), openAiApiKey: data.get('openAiApiKey') };
+    setSettings(newSettings);
+    // La clé API OpenAI reste uniquement locale (jamais envoyée dans la table publique site_settings) pour éviter de l'exposer à tous les visiteurs.
+    const { openAiApiKey, ...sharedSettings } = newSettings;
+    supabase.from('site_settings').upsert({ id: 1, data: sharedSettings }).then(({ error }) => {
+      if (error) {
+        setMessage("⚠️ Sauvegardé localement, mais la synchronisation en ligne a échoué : " + error.message);
+      } else {
+        setMessage("✅ Configuration mise à jour pour tous les visiteurs !");
+      }
+      setTimeout(() => setMessage(''), 4000);
+    });
   };
 
   const resetCatalog = () => {
