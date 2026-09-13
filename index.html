@@ -21,7 +21,7 @@
   "description": "Location de tracteurs agricoles premium et standard, réservables en ligne.",
   "url": "https://tractorrent.netlify.app/",
   "priceRange": "€€",
-  "email": "tractorent3@gmail.com"
+  "email": "admintractorent@gmail.com"
 }
 </script>
 <link rel="preconnect" href="https://unpkg.com" crossorigin />
@@ -1038,7 +1038,7 @@ function App() {
 
   const defaultSettings = {
     siteName: "TractoRent",
-    adminEmail: "admin@tractorrent.com",
+    adminEmail: "admintractorent@gmail.com",
     primaryColor: "#1b9842",
     secondaryColor: "#f59e0b",
     bgColor: "#121212",
@@ -1576,7 +1576,7 @@ function App() {
       ? supabase.from('tractors').update(payload).eq('id', editingTractorId)
       : supabase.from('tractors').insert(payload);
     request.then(({ error }) => {
-      if (error) { setMessage("⚠️ Échec de l'enregistrement du tracteur. Vérifiez que la colonne \"description\" existe bien dans la table."); setTimeout(() => setMessage(''), 5000); return; }
+      if (error) { setMessage("⚠️ Échec de l'enregistrement : " + error.message); setTimeout(() => setMessage(''), 8000); return; }
       setEditingTractorId(null);
       fetchTractors();
       form.reset();
